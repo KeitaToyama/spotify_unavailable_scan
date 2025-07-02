@@ -66,10 +66,12 @@ export default function PlaylistList() {
         }));
 
         // 重複を除外して追加
-        const uniqueTracks = [...prevTracks, ...newTracks].filter(
-          (track, index, self) =>
-            index === self.findIndex((t) => t.id === track.id)
-        );
+        const uniqueTracks = [...prevTracks, ...newTracks]
+          .filter(
+            (track, index, self) =>
+              index === self.findIndex((t) => t.id === track.id)
+          )
+          .sort((a, b) => new Date(b.added_date) - new Date(a.added_date));
         return uniqueTracks;
       });
     }
@@ -79,7 +81,7 @@ export default function PlaylistList() {
 
   if (loading) return <p>読み込み中...</p>;
   if (error) return <p>エラー: {error}</p>;
-  if (!playlists.length) return <p>プレイリストがありません。</p>;
+  if (!playlists.length) return <p>no playlists</p>;
 
   const handleFileRead = (e) => {
     const file = e.target.files?.[0];
@@ -206,7 +208,7 @@ export default function PlaylistList() {
           padding: "10px",
         }}
       >
-        <h2>プレイリスト一覧</h2>
+        <h2>Library</h2>
         <div>
           <button
             onClick={() => handleCheckSequentially(playlists.map((p) => p.id))}
@@ -235,8 +237,8 @@ export default function PlaylistList() {
       >
         {unplayableTracks.length > 0 && (
           <>
-            <button onClick={handleUpload}>データベースに保存</button>
-            <button onClick={handleDownload}>CSVダウンロード</button>
+            {/* <button onClick={handleUpload}>データベースに保存</button> */}
+            <button onClick={handleDownload}>download csv</button>
           </>
         )}
         <UserTracks tracks={unplayableTracks} />
@@ -266,9 +268,9 @@ function UserTracks({ tracks }) {
 
   return (
     <div>
-      <h2>保存済み</h2>
+      <h2>saved tracks</h2>
       {sortedTracks.length === 0 ? (
-        <p>保存無し。</p>
+        <p>no saved tracks</p>
       ) : (
         <ul>
           {sortedTracks.map((track) => (
