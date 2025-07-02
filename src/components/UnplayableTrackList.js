@@ -6,7 +6,7 @@ export function UnplayableTrackList({ tracks }) {
       <ul>
         {tracks.map((track) => (
           <li key={track.id}>
-            {track.name} - {track.artist.join(", ")}
+            {track.name} - {track.artist}
           </li>
         ))}
       </ul>

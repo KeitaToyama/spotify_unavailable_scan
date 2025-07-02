@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1 --turbopack",
+    "dev": "next dev -H 127.0.0.1 --experimental-https --turbopack",
     "build": "prisma generate  && next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,8 +11,11 @@
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "@supabase/supabase-js": "^2.49.1",
+    "install": "^0.13.0",
     "next": "15.2.2",
     "next-auth": "^4.24.11",
+    "npm": "^11.4.2",
+    "papaparse": "^5.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

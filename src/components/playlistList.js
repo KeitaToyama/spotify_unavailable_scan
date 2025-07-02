@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UnplayableTrackList } from "./UnplayableTrackList";
 import { getSession } from "next-auth/react";
 import { v4 as uuidv4 } from "uuid"; // 追加
+import Papa from "papaparse";
 
 export default function PlaylistList() {
   const [unplayableTracks, setUnplayableTracks] = useState([]);
@@ -11,7 +12,7 @@ export default function PlaylistList() {
   const [highlight, setHighlight] = useState(false);
   const [userTracks, setUserTracks] = useState([]);
   const [isChecking, setIsChecking] = useState(false); // 状態を管理
-
+  const [checkingPlaylist, setcheckingPlaylist] = useState();
   useEffect(() => {
     fetch("/api/playlists")
       .then((res) => res.json())
@@ -45,6 +46,7 @@ export default function PlaylistList() {
   };
 
   const handleCheck = async (playlistId) => {
+    setcheckingPlaylist(playlistId);
     const response = await fetch(
       `/api/playlist-tracks?playlistId=${playlistId}`
     );
@@ -54,14 +56,15 @@ export default function PlaylistList() {
         const newTracks = data.map((track) => ({
           id: track.track.id,
           name: track.track.name,
-          artist: track.track.artists.map((artist) => artist.name),
+          artist: track.track.artists.map((artist) => artist.name).join("."),
           album: track.track.album.name,
           url: track.track.external_urls.spotify,
           playlistId,
           isPlayable: track.track.is_playable,
           image_url: track.track.album.images?.[0]?.url ?? "",
+          added_date: new Date().toISOString(),
         }));
-
+        setcheckingPlaylist("");
         // 重複を除外して追加
         const uniqueTracks = [...prevTracks, ...newTracks].filter(
           (track, index, self) =>
@@ -78,6 +81,50 @@ export default function PlaylistList() {
   if (error) return <p>エラー: {error}</p>;
   if (!playlists.length) return <p>プレイリストがありません。</p>;
 
+  const handleFileRead = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true, // 1行目をキーとして扱う
+      skipEmptyLines: true,
+      complete: (result) => {
+        const parsedData = result.data;
+        // 整形処理（例：必要な列だけ抽出）
+        const cleaned = parsedData.map((row) => ({
+          id: row["id"],
+          name: row["name"],
+          artist: row["artist"],
+          album: row["album"],
+          url: row["url"],
+          isPlayable: row["isPlayable"] === "true",
+          image_url: row["image_url"],
+          added_date: new Date(row["added_date"]),
+        }));
+        setUnplayableTracks(cleaned);
+      },
+      error: (err) => {
+        console.error("CSV parse error:", err);
+      },
+    });
+  };
+
+  const handleDownload = () => {
+    const csv = Papa.unparse(unplayableTracks); // ← 配列→CSV変換
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setUnplayableTracks([]);
+  };
+
   const handleUpload = async () => {
     const session = await getSession();
     if (!session || !session.user) {
@@ -93,7 +140,7 @@ export default function PlaylistList() {
         id: uuidv4(),
         user: session.user.name,
         name: track.name,
-        artist: `{${track.artist.join(",")}}`, // Supabase ARRAY 型対応
+        artist: track.artist, // Supabase ARRAY 型対応
         album: track.album,
         url: track.url,
         playlistId: track.playlistId,
@@ -136,6 +183,20 @@ export default function PlaylistList() {
 
   return (
     <div style={{ display: "flex", gap: "20px" }}>
+      <div>
+        <p>read csv</p>
+        <input
+          type="file"
+          multiple={false}
+          accept=".csv"
+          onChange={handleFileRead}
+        />
+        <div>
+          {isChecking && <p>処理中です。しばらくお待ちください...</p>}
+          {checkingPlaylist && <p>procceccing...</p>}
+          {checkingPlaylist}{" "}
+        </div>
+      </div>
       <div
         style={{
           flex: 1,
@@ -153,7 +214,6 @@ export default function PlaylistList() {
           >
             {isChecking ? "チェック中..." : "すべてチェック"}
           </button>
-          {isChecking && <p>処理中です。しばらくお待ちください...</p>}
         </div>
         {playlists.map((playlist) => (
           <div key={playlist.id}>
@@ -162,7 +222,6 @@ export default function PlaylistList() {
           </div>
         ))}
       </div>
-
       <div
         style={{
           flex: 1,
@@ -172,10 +231,15 @@ export default function PlaylistList() {
           padding: "10px",
         }}
       >
-        <UserTracks tracks={userTracks} />
+        {unplayableTracks.length > 0 && (
+          <>
+            <button onClick={handleUpload}>データベースに保存</button>
+            <button onClick={handleDownload}>CSVダウンロード</button>
+          </>
+        )}
+        <UserTracks tracks={unplayableTracks} />
       </div>
-
-      <div
+      {/* <div
         style={{
           flex: 1,
           overflowY: "auto",
@@ -187,10 +251,7 @@ export default function PlaylistList() {
         }}
       >
         <UnplayableTrackList tracks={unplayableTracks} />
-        {unplayableTracks.length > 0 && (
-          <button onClick={handleUpload}>データベースに保存</button>
-        )}
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -251,10 +312,15 @@ function UserTracks({ tracks }) {
                   style={{ height: "1em", verticalAlign: "middle" }}
                 />
               </a>{" "}
-              - {track.artist.join(", ")} (
-              {track.createdAt
-                ? new Date(track.createdAt).toLocaleString("ja-JP", {
+              - {track.artist} (
+              {track.added_date
+                ? new Date(track.added_date).toLocaleString("ja-JP", {
                     timeZone: "Asia/Tokyo",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: false, // 13:00 形式。true にすると 1:00 午後
+                    month: "numeric",
+                    day: "numeric",
                   })
                 : "N/A"}
               )
