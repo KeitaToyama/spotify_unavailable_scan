@@ -64,17 +64,17 @@ export default function PlaylistList() {
           image_url: track.track.album.images?.[0]?.url ?? "",
           added_date: new Date().toISOString(),
         }));
-        setcheckingPlaylist("");
+
         // 重複を除外して追加
         const uniqueTracks = [...prevTracks, ...newTracks].filter(
           (track, index, self) =>
             index === self.findIndex((t) => t.id === track.id)
         );
-
         return uniqueTracks;
       });
     }
     // console.log("プレイリストのトラックデータ:", data);
+    setcheckingPlaylist("");
   };
 
   if (loading) return <p>読み込み中...</p>;
@@ -192,8 +192,8 @@ export default function PlaylistList() {
           onChange={handleFileRead}
         />
         <div>
-          {isChecking && <p>処理中です。しばらくお待ちください...</p>}
-          {checkingPlaylist && <p>procceccing...</p>}
+          {isChecking && <p>scannning all...</p>}
+          {checkingPlaylist && <p>procceccing playlist ID</p>}
           {checkingPlaylist}{" "}
         </div>
       </div>
@@ -212,13 +212,15 @@ export default function PlaylistList() {
             onClick={() => handleCheckSequentially(playlists.map((p) => p.id))}
             disabled={isChecking}
           >
-            {isChecking ? "チェック中..." : "すべてチェック"}
+            {isChecking ? "scanning all..." : "scan all"}
           </button>
         </div>
         {playlists.map((playlist) => (
           <div key={playlist.id}>
             <h3>{playlist.name}</h3>
-            <button onClick={() => handleCheck(playlist.id)}>チェック</button>
+            <button onClick={() => handleCheck(playlist.id)}>
+              scan single
+            </button>
           </div>
         ))}
       </div>

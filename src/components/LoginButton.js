@@ -7,11 +7,11 @@ export default function LoginButton() {
     <div>
       {session ? (
         <>
-          <p>ログイン中: {session.user.name}</p>
-          <button onClick={() => signOut()}>ログアウト</button>
+          <p>Logged Into: {session.user.name}</p>
+          <button onClick={() => signOut()}>Logout</button>
         </>
       ) : (
-        <button onClick={() => signIn("spotify")}>Spotifyでログイン</button>
+        <button onClick={() => signIn("spotify")}>Login with spotify</button>
       )}
     </div>
   );
