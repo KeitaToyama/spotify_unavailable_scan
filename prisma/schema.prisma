@@ -1,0 +1,22 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Track {
+  id         String   @id @default(uuid()) // (supabaseで自動入力されるものでありspotify上のIDではない)
+  user       String // (sessionからspotifyユーザーのusername(display_nameではない)を取得)
+  name       String // (曲名)
+  artist     String[] // (アーティスト名(複数可))
+  album      String // (アルバム名)
+  url        String // (spotify上のurl)
+  playlistId String
+  isPlayable Boolean
+  createdAt  DateTime @default(now()) // (作成日時)
+  updatedAt  DateTime @updatedAt // (更新日時)
+  image_url  String
+}
